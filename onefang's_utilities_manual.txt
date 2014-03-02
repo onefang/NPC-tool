@@ -1,0 +1,228 @@
+A bunch of stuff copied from the script, since it's too close to the 64Kb limit.
+Below the license is some rough instructions.
+
+// onefang's utilites version 3.0
+// Read a complete settings notecard and send settings to other scripts.
+// Also other useful functions.
+
+// Copyright (C) 2007 David Seikel (onefang rejected).
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies of the Software and its Copyright notices. In addition publicly
+// documented acknowledgment must be given that this software has been used if no
+// source code of this software is made available publicly. This includes
+// acknowledgments in either Copyright notices, Manuals, Publicity and Marketing
+// documents or any documentation provided with any product containing this
+// software. This License does not apply to any software that links to the
+// libraries provided by this software (statically or dynamically), but only to
+// the software provided.
+//
+// Please see the COPYING-PLAIN for a plain-english explanation of this notice
+// and it's intent.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// As a special exception to the above conditions, the Second Life user known
+// as Winter Ventura may ignore all permissions and conditions and provide her
+// own.
+
+// All scripts in this object will get link messages with -
+// num     = -1000 - line number in the notecard.
+// message = a list, 
+//        settings card name, 
+//        name of this setting, 
+//        data for this setting (may be "").
+// id      = scriptKey as passed to us by the calling script.
+// Settings are in the format "setting=data" with whitespace ignored.
+// # as first non space character means ignore the line.
+// For best efficiency, keep notecards short, 0.1 seconds per line read.
+// You can seperate settings with a ";", and include a literal ";" with "\;".
+// Objects using this must be tolerant of having their settings passed
+// to them at any time, even multiple times.
+// Other scripts should ignore settings that are meaningless to them,
+// but can complain if settings they know about are broken.
+//
+// Other commands are passed in link messages in the form -
+//     llMessageLink(LINK_SET, UTILITIES_COMMAND, llDumpList2String(argumentList, LIST_SEP), scriptKey);
+//        UTILITIES_COMMAND is one of the commands listed below.
+//        argumentList is a list of the arguments for the command.
+//        For those commands with one or less arguments, a dumped list is not needed.
+//        scriptKEy is llGetInventoryKey(llGetScriptName()) from the caller script.
+//        It's used by the caller to make sure it gets it's returned message and not that of other scripts.
+
+// llGetNotecardLine() delays for 0.1 seconds, truncates at 255 chars, no warning, 64KiB notecard limit.
+// llResetOtherScript("SettingsReaderAndUtilities") to restart this from another script.
+
+// TODO (LSL permitting) -
+// Use numbers for the returned chat commands.
+//   These numbers are set by the caller.
+//   They only should set a base number, that gets incremented for the other commands.
+// Performance monitor.
+// onefangs special boolean parser, put it in there somewhere.
+// More complex parsing -
+//   No = required, just parse first word as key, rest as data.
+//    Does not work so well for "Avatar Name=key".
+//   Other comment types, embedded comments.
+
+// type          channel  owner   prefix      commands   menu  scripts  users
+// emoter        12+123   only                none       no    1        owner
+// translator    1+2+3    only                none       no    1        owner
+// online HUD    5        only                fixed+     no    1        owner
+// online IRC    0        +IRC                fixed+     no    1        owner+IRC nick
+// hug           1        only                config     later 1        owner+hugee
+// TeddyPorter   2        owners  TeddyPorter fixed+     yes   1+       owners+bookers+occupier+group+users
+// collar        0+x      owners  *|an        per script yes   several  owner+secowners+group+sub+everyone
+
+// Online IRC is TODO'd to move away from the need to listen to local chat.
+// Collars are icky, but mired in historical precedence.
+// TeddyPorter is the only other one with an open listener, and it uses a prefix to filter because of that.
+
+
+
+integer isKey(key thisKey)
+{//by: Strife Onizuka
+    if (thisKey) return 2;         // key is valid AND not equal NULL_KEY; the distinction is important in some cases (return value of 2 is still evaluated as unary boolean TRUE)
+    return (thisKey == NULL_KEY);  // key is valid AND equal to NULL_KEY (return 1 or TRUE), or is not valid (return 0 or FALSE)
+}
+
+key forceKey(key thisKey)
+{//force a string or key to be a valid key assuming you want invalids to become NULL_KEY
+    if (thisKey) return thisKey;
+    return NULL_KEY;
+}
+
+// If the above key checking turns out to be wrong, do it the hard way.
+integer isKeyHard(key thisKey)
+{
+    integer i;
+
+    if (llStringLength(thisKey) != 36)
+        return FALSE;
+    // Hyphenation tests:
+    if (llGetSubString(thisKey, 8, 8) != "-")
+        return FALSE;
+    if (llGetSubString(thisKey, 13, 13) != "-")
+        return FALSE;
+    if (llGetSubString(thisKey, 18, 18) != "-")
+        return FALSE;
+    if (llGetSubString(thisKey, 23, 23) != "-")
+        return FALSE;
+    // Hex test:
+    // Remove dashes (fixed, thanks Kek :-))
+    thisKey = llDeleteSubString(llDeleteSubString(llDeleteSubString(llDeleteSubString((string) thisKey, 23, 23), 18, 18), 13, 13), 8, 8);
+
+    for (i = 0; i < 32; ++i)
+    {
+        string char = llGetSubString(thisKey, i, i);
+
+        if ((0 == ((integer) ("0x" + char))) && ("0" != char))
+            return FALSE;
+    }
+    return TRUE; // Passed all tests:
+}
+
+// Send an avatar key request to the server.
+addKeyRequest(key script, string type, string name, string extra)
+{
+    keyRequests += [script, type, name, extra, llHTTPRequest("http://w-hat.com/name2key?terse=1&name=" + llEscapeURL(name), [], "")];
+}
+
+
+
+
+    // Check if anything changed.
+    // Including - adding inv, deleting inv, change name or desc of inv, saving notecard, recompiling script.
+    // Not including - script reset, no-copy inv is dragged out, inv drop by non owner.
+    //changed(integer change)
+    //{
+    //if (CHANGED_INVENTORY & change)
+    //init(settingsName);
+    //}
+
+    // Deal with each notecard line.
+    dataserver(key query_id, string data)
+    {
+        if (query_id == settingsQueryID)
+        {
+            if (data != EOF)
+            {
+                readThisLine(data);
+                settingsQueryID = llGetNotecardLine(settingsName, settingsLine);
+            }
+            else
+            {
+                llMessageLinked(LINK_SET, UTILITIES_READ_DONE, settingsName, settingsKey);
+                startNextRead();
+            }
+        }
+    }
+
+    http_response(key id, integer status, list meta, string body)
+    {
+        integer i;
+        integer length = llGetListLength(keyRequests) / KEYS_STRIDE;
+
+        for (i = 0; i <= length; ++i)
+        {
+            integer thisRequest = i * KEYS_STRIDE;
+
+            if ((NULL_KEY != id) && (llList2Key(keyRequests, thisRequest + KEYS_ID) == id))
+            {
+                string  script  = llList2String(keyRequests, thisRequest + KEYS_SCRIPT);
+                string  type    = llList2String(keyRequests, thisRequest + KEYS_TYPE);
+                string  name    = llList2String(keyRequests, thisRequest + KEYS_NAME);
+                string  extra   = llList2String(keyRequests, thisRequest + KEYS_EXTRA);
+                key     result  = (key) body;
+
+                keyRequests = llDeleteSubList(keyRequests, thisRequest, thisRequest + KEYS_STRIDE - 1);
+                i -= KEYS_STRIDE;
+                length -= KEYS_STRIDE;
+
+                if (status == 499)
+                {
+                    llOwnerSay("name2key request timed out for " + name + ".  Trying again.");
+                    addKeyRequest(script, type, name, extra);
+                }
+                else if (status != 200)
+                {
+                    llOwnerSay("The internet exploded!!  Trying again.");
+                    addKeyRequest(script, type, name, extra);
+                }
+                else if ((!isKey(result)) || ("" == body))
+                    llOwnerSay("No key found for " + name);
+                else if (36 != llStringLength(body))
+                    llOwnerSay("Server broken for " + name);
+                else
+                    llMessageLinked(LINK_SET, UTILITIES_AVATAR_KEY_DONE, llDumpList2String([type, name, result, extra], LIST_SEP), script);
+            }
+        }
+    }
+
+
+        else if (UTILITIES_AVATAR_KEY == num)
+        {
+            string  type    = llList2String(input, 0);
+            string  name    = llList2String(input, 1);
+            string  extra    = llList2String(input, 2);
+            key     result    = NULL_KEY;
+
+// TODO add a check for the key already existing in name.  Should be done by caller if caller worries about speed.
+
+            if (NULL_KEY == result)
+                addKeyRequest(id, type, name, extra);
+            else
+                llMessageLinked(LINK_SET, num - 1, llDumpList2String([type, name, result, extra], LIST_SEP), id);
+        }
+

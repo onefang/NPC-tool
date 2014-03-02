@@ -1,4 +1,1 @@
-NPC-tool
-========
-
-A tool for dealing with OpenSIm NPCs.
+This is an early release of onefang's NPC tool, for controlling NPCs in OpenSim.

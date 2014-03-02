@@ -1,0 +1,171 @@
+NPC tool.
+-------------
+
+This notecard documents onefang's "NPC tool" script.  It needs another script called "onefang's utilities" to also be inside the prim.  You can also include the "NPC menu" script to get the menu system.
+
+NOTE - this is an early release, there's things that are likely to change, but apparently lots of people are asking for it.  Open source, release early, release often.
+
+Menu system.
+--------------------
+
+When you click on the object with the NPC tool script, you get it's menus.  In general that just calls the below listed commands, presenting menus for picking avatars, objects, NPCs, and note cards as needed.  This menu includes the "Backup NPCs", "Restore NPCs", "start recrording", and "stop recording" options that are not available as commands.
+
+The "nearby NPCs" option lets you select from the NPCs that are close to you, "Local NPCs" to select from any within sensor range, and "NPCs in sim" selects from all the NPCs in the sim.
+
+As a safety feature, if the NPC tool script is in an NPC's attachments, the script gets deleted.
+
+
+Script and chat command system.
+-----------------------------------------------
+
+All of this is subject to change as the tool is still under development.  In particular, I plan on changing the commands to be more conversational.
+
+The commands can be said in local chat, or put into notecards to script NPCs.  Script notecards need to have ".npc" at the end of their name.  In a script notecard, lines starting with # are ignored, and so are blank lines.
+
+In general, each command is followed by the name of the NPC, then any other arguments.  The NPC in these examples is "onefang's clone".  UUIDs can be used to.
+
+Any objects mentioned by name have to be close enough to the prim with the NPC tool script in it for a sensor() to find it.  If there are multiple objects with the same name, the closest one is chosen.
+
+There are three special notecard scripts for the backup and restore system.  "Restore.npc" is created or over written each time you do a backup from the menus.  When doing a restore, first "Restore.before.npc" is run, then "Restore.npc", and finally "Restore.after.npc".  Any of those scripts that are missing are skipped.  A restore is done automatically 60 seconds after the sim restarts.  Or more, depends on when the script itself starts running again.
+
+There is also the "Recorded.npc" notecard, it holds anything you recorded with the "start recording" menu option.
+
+You can send these commands from some other LSL script in the same object.  Add something like this to your script -
+
+string  LIST_SEP = "$!#";           // Used to seperate lists when sending them as strings.
+integer UTILITIES_CHAT_FAKE         = -19;
+key NPCscriptKey = llGetInventoryKey("NPC tool");
+sendCommand(key user, string command)
+{
+    llMessageLinked(LINK_SET, UTILITIES_CHAT_FAKE, llDumpList2String([0, llKey2Name(user), user, command], LIST_SEP), NPCscriptKey);
+}
+
+
+Creation / deletion commands.
+    These commands mostly deal with avatar appearance notecards, which are XML formatted notecards with their names ending in ".avatar".  These cards are in the format that the OpenSim appearance functions use.
+
+clone onefang rejected
+    Creates an appearance notecard of the named avatar.  In this example, that will be "onefang rejected.avatar".  Yes, you can clone NPCs as well.
+
+create onefang's clone <1.0,2.0,3.0>
+    Creates an NPC from the named notecard, "onefang's clone.avatar" for example, at the given position.  The new NPC will be named after the card, "onefang's clone" in this case.  The position is optional, in which case the NPC is created close to the prim holding the NPC tool script.
+
+change onefang's clone other avatar
+    Causes the named NPC to change to match the appearance notecard named, "other avatar.avatar" in this example.
+
+delete onefang's clone
+    Remove the named NPC.
+
+nuke
+    Remove all NPCs in the sim.
+
+
+Animation commands.
+    The animation has to be in the same prim as the NPC tool script.  Multiple animations can be on an NPC at once, that's why there's start and stop commands.
+
+animate onefang's clone animation name
+    Start animating the named NPC using the named animation.
+
+stopanim onefang's clone animation name
+    Stop the named animation from animating the named NPC.
+
+
+Chatting commands.
+    The named NPC say, shouts, or whispers the rest of the text in the command.  If the text is just a number between 1 and 11, then that sets the number as a chat channel for that NPC to relay chat from, either said, shouted, or whispered to match.  Using 0 will turn off chat relay for that NPC.  The relay channel will be displayed in the NPCs menu.
+
+say onefang's clone Stuff to say.
+shout onefang's clone Stuff to shout.
+whisper onefang's clone Stuff to whisper.
+
+
+Moving commands.
+    The go, fly, and land commands can have various ways of providing the destination.  A vector position <1.0,2.0,3.0>, the name of an avatar or NPC, the name of an in world object, or a UUID of an avatar, in world object, or NPC.  Note that's easily possible for a NPC to get stuck.  They just don't understand navigating around a 3D world.  If they get stuck, then they will get deleted and recreated at the destination.
+
+come onefang's clone
+    The NPC walks to the person using this command, or the person running the script via the menu system.
+
+complete onefang's clone
+    Wait for their movement to be completed.  Only covers come, goto, flyto, and landat.
+
+go onefang's clone <1.0,2.0,3.0>
+    The NPC walks to the given destination.
+
+follow onefang's clone <-3.0, 0.0, 0.0>
+    Start to follow you at the (optional) distance.
+
+fly onefang's clone <1.0,2.0,3.0>
+    The NPC flies to the given destination, then remains hovering.
+
+land onefang's clone<1.0,2.0,3.0>
+    The NPC flies to the given destination, then lands.
+
+rotate onefang's clone 180
+    The NPC rotates to the given direction in degrees.  Note that there seems to be an OpenSim bug, not getting the rotations I expect.
+
+stalk onefang's clone onefang rejected <-3.0, 0.0, 0.0>
+    Start to follow the given avatar or NPC at the (optional) distance.
+
+stop onefang's clone
+    Stops the NPC from moving to a destination.
+
+
+Scripting commands.
+
+link 1 2 Third thing to send.
+    Sends a link message "Third thing to send.", to link number 1, with num being 2.  No key is sent, but that should be added later.
+
+listen 123
+    Changes the NPC tool to listen to commands from a different channel.
+
+script scriptcard.npc
+    Runs an NPC script.  If you use this inside another script, that script will wait for this new script to finish running.  Circular references to scripts is not a good idea, it will eventually run out of memory.  Note that it is theoretically possible for scripts running from scripts to get a little confused when running the same script multiple times, but hopefully that's rare.
+
+sleep 10.0
+    Stops a script from running for the given number of seconds.  Can be fractional seconds.  Note that currently NPC tool only runs one command from the script every half a second.
+
+
+World interaction commands.
+    The objects named in these commands have to be scripted.  Names and UUIDs can be used for the objects.
+
+locate onefang's clone
+    Hangs a giant red beacon above the head of the NPC, so you can see where they are.  Clicking on the beacon opens up the map to their position, with the TP beacon set.  Honestly, just use your viewers radar.  Only one beacon allowed.
+
+sit onefang's clone object to sit on
+    The NPC sits on the named in world object.
+
+stand onefang's clone
+    The NPC stands up.
+
+touch onefang's clone object to touch
+    The NPC touches the named in world object.  If the object does things to avatars that touch them, it will get triggered.  Things like dance balls will get automatic permission to animate the NPC.
+
+
+
+Copyright (C) 2013 David Seikel (onefang rejected).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies of the Software and its Copyright notices. In addition publicly
+documented acknowledgment must be given that this software has been used if no
+source code of this software is made available publicly. This includes
+acknowledgments in either Copyright notices, Manuals, Publicity and Marketing
+documents or any documentation provided with any product containing this
+software. This License does not apply to any software that links to the
+libraries provided by this software (statically or dynamically), but only to
+the software provided.
+
+Please see the COPYING-PLAIN for a plain-english explanation of this notice
+and it's intent.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
