@@ -5,6 +5,8 @@ This notecard documents onefang's "NPC tool" script.  It needs another script ca
 
 NOTE - this is an early release, there's things that are likely to change, but apparently lots of people are asking for it.  Open source, release early, release often.
 
+The original source code, and issue tracker, can be found at https://github.com/onefang/NPC-tool
+
 Menu system.
 --------------------
 
