@@ -1,4 +1,4 @@
-Plain English Copyright Notice
+Plain English Copyright notice.
 
 This file is not intended to be the actual License.  The reason this
 file exists is that we here are programmers and engineers.  We aren't
@@ -23,14 +23,13 @@ matter.  We still have it here for ourselves and it is open and free to
 use and download and play with.  It can't be taken away.  We don't
 really mind what you do with the source to your software.  We would
 simply like to know that you are using it - especially if it makes it to
-a commerical product.  If you simply contact all the AUTHORS (see below)
-telling us, and then make sure you include a paragraph or page in the
-manual for the product with the copyright notice and state that you used
-this software, we will be very happy.  If you want to contribute back
-modifications and fixes you may have made we will welcome those too with
-open arms (generally).  If you want help with changes needed, ports
-needed or features to be added, arrangements can be easily made with
-some dialogue.
+a commerical product.  If you simply make sure you include a paragraph
+or page in the manual for the product with the copyright notice and
+state that you used this software, we will be very happy.  If you want
+to contribute back modifications and fixes you may have made we will
+welcome those too with open arms (generally).  If you want help with
+changes needed, ports needed or features to be added, arrangements can
+be easily made with some dialogue.
 
 This is a Second Life script, "simply link to these libraries" means
 including the script in an object and making the script no-modify, or
@@ -38,5 +37,4 @@ otherwise rendering the source code unreadable.  Any use of this script
 that makes the source code readable must include the License unmodified
 at the top of the source code.
 
-David Seikel (Second Life user onefang Rejected).
-
+David Seikel (AKA onefang rejected).
