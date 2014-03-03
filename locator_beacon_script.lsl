@@ -1,6 +1,7 @@
 // Onefang's locator beacon script version 1.0.
 
-// A lot of this is just my tweaked up warpPos(), the rest is mostly trivial.
+// A lot of this is just my tweaked up warpPos(), the rest is mostly trivial.  On the other hand, warpPos may be obsolete by now, but it still works.
+// The original warpPos() was declared "It's completely public domain." http://forums-archive.secondlife.com/54/8d/109523/1.html
 // So I'll put this into the public domain.
 
 integer SIM_CHANNEL = -65767365;
