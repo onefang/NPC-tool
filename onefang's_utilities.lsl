@@ -1149,7 +1149,8 @@ default
             string desc = llList2String(llGetObjectDetails(llGetLinkKey(llDetectedLinkNumber(i)), [OBJECT_DESC]), 0);
 
             // If there's a description, then it's likely a scriptlet.
-            if ("" != desc)
+            // TODO - need a new way to do this, ANY description makes menus not work.
+            if (("" != desc) && (" " != desc))
                 myListen(0, llKey2Name(id), id, desc);  // TODO - the problem here is that the first argument is a channel,
                                                         // and we don't know which channel to fake.
                                                         // Maybe use the debug channel as a wildcard?
