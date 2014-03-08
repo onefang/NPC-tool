@@ -1148,20 +1148,20 @@ default
             key id = llDetectedKey(i);
             string desc = llList2String(llGetObjectDetails(llGetLinkKey(llDetectedLinkNumber(i)), [OBJECT_DESC]), 0);
 
-            // If there's a description, then it's likely a scriptlet.
-            // TODO - need a new way to do this, ANY description makes menus not work.
-            if (("" != desc) && (" " != desc))
-                myListen(0, llKey2Name(id), id, desc);  // TODO - the problem here is that the first argument is a channel,
-                                                        // and we don't know which channel to fake.
-                                                        // Maybe use the debug channel as a wildcard?
-            else if (1 == length)       // Only one registered, select it directly.
+            // NOTE - You can't have a scriptlet and a menu, doesn't make sense anyway.
+            if (1 == length)       // Only one registered, select it directly.
             {
                 llMessageLinked(LINK_SET, UTILITIES_MENU_DONE, llDumpList2String([id, ""], LIST_SEP), 
                     llList2String(llParseStringKeepNulls(llList2String(registeredMenus, 0), ["|"], []), 2));
             }
             else if (0 != length)       // More than one, put up a menu of them.
                 startMenu(NULL_KEY, [id, INVENTORY_NONE, "Choose a function :"] + registeredMenus);
-            // If there's zero registered menus, then do nothing.
+            // If there's a description, then it's likely a scriptlet.
+            else if (("" != desc) && (" " != desc))
+                myListen(0, llKey2Name(id), id, desc);  // TODO - the problem here is that the first argument is a channel,
+                                                        // and we don't know which channel to fake.
+                                                        // Maybe use the debug channel as a wildcard?
+            // If there's zero registered menus, and not a scriptlet, then do nothing.
         }
     }
 
